@@ -21,8 +21,8 @@ enum class SubscriptionPlan {
 
 data class Project(
     val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val clientName: String,
+    val name: String = "",
+    val clientName: String = "",
     val description: String = "",
     val progress: Float = 0f,
     val startDate: Date = Date(),

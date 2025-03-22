@@ -1,5 +1,7 @@
 package com.eduardo.dev.archapp.ui.screens.project
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,17 +18,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -38,6 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -48,87 +54,47 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.eduardo.dev.archapp.model.Document
-import com.eduardo.dev.archapp.model.DocumentType
-import com.eduardo.dev.archapp.model.Project
 import com.eduardo.dev.archapp.model.Task
 import com.eduardo.dev.archapp.model.TaskStatus
-import com.eduardo.dev.archapp.navegation.Screen
+import com.eduardo.dev.archapp.ui.Attach_file
+import com.eduardo.dev.archapp.ui.Chat
+import com.eduardo.dev.archapp.ui.Description
+import com.eduardo.dev.archapp.ui.Drive_folder_upload
 import com.eduardo.dev.archapp.ui.theme.Blue500
 import com.eduardo.dev.archapp.ui.theme.Gray200
 import com.eduardo.dev.archapp.ui.theme.Gray300
 import com.eduardo.dev.archapp.ui.theme.SuccessGreen
 import com.eduardo.dev.archapp.ui.theme.WarningYellow
-import java.util.UUID
+import com.eduardo.dev.archapp.viewmodel.ui.project.ProjectDetailsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectDetailScreen(
     projectId: String,
-    navController: NavController
+    navController: NavController,
+    projectViewModel: ProjectDetailsViewModel = viewModel()
 ) {
-    // In a real app, fetch project details based on projectId
-    val project = remember {
-        Project(
-            id = projectId,
-            name = "Modern Residential Complex",
-            clientName = "Skyline Developers",
-            description = "A luxury residential complex with 50 units, featuring modern architecture and sustainable design elements.",
-            progress = 0.75f,
-            tasks = listOf(
-                Task(
-                    title = "Floor plan design",
-                    description = "Create detailed floor plans for all unit types",
-                    status = TaskStatus.COMPLETED
-                ),
-                Task(
-                    title = "Structural analysis",
-                    description = "Perform structural calculations and analysis",
-                    status = TaskStatus.COMPLETED
-                ),
-                Task(
-                    title = "Interior design",
-                    description = "Develop interior design concepts for common areas",
-                    status = TaskStatus.IN_PROGRESS
-                ),
-                Task(
-                    title = "Landscape design",
-                    description = "Design outdoor spaces and landscaping",
-                    status = TaskStatus.TODO
-                ),
-                Task(
-                    title = "MEP coordination",
-                    description = "Coordinate mechanical, electrical, and plumbing systems",
-                    status = TaskStatus.TODO
-                )
-            ),
-            documents = listOf(
-                Document(
-                    id = UUID.randomUUID().toString(),
-                    name = "Site Plan.pdf",
-                    type = DocumentType.PDF,
-                    url = "https://example.com/site-plan.pdf",
-                    thumbnailUrl = "https://via.placeholder.com/100x100"
-                ),
-                Document(
-                    id = UUID.randomUUID().toString(),
-                    name = "Floor Plans.dwg",
-                    type = DocumentType.DWG,
-                    url = "https://example.com/floor-plans.dwg",
-                    thumbnailUrl = "https://via.placeholder.com/100x100"
-                ),
-                Document(
-                    id = UUID.randomUUID().toString(),
-                    name = "Elevation Render.png",
-                    type = DocumentType.PNG,
-                    url = "https://example.com/elevation.png",
-                    thumbnailUrl = "https://via.placeholder.com/100x100"
-                )
-            )
-        )
+    LaunchedEffect(projectId) {
+        projectViewModel.selectProject(projectId)
     }
+    val project by projectViewModel.selectedProject.collectAsState()
+
+    if (project == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+        ) {
+            Text("Project not found or loading...")
+        }
+        return
+    }
+
+    // A partir de aquí, project es NO NULLABLE (por el return anterior)
+    val nonNullProject = project!!
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("Tasks", "Documents", "Budget")
@@ -136,22 +102,21 @@ fun ProjectDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(project.name) },
+                title = { Text(nonNullProject.name) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = {
-                        navController.navigate(Screen.Chat.createRoute(projectId))
+                        //navController.navigate(Screen.Chat.createRoute(projectId))
                     }) {
                         Icon(
-                            imageVector = Icons.Default.Chat,
-                            contentDescription = "Chat"
+                            imageVector = Chat, contentDescription = "Chat"
                         )
                     }
                     IconButton(onClick = { /* Open menu */ }) {
@@ -168,21 +133,13 @@ fun ProjectDetailScreen(
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { /* Add new task/document/budget item based on selected tab */ },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState()) // Scroll global aquí
         ) {
             // Project header with progress
             Card(
@@ -201,14 +158,14 @@ fun ProjectDetailScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = "Client: ${project.clientName}",
+                                text = "Client: ${nonNullProject.clientName ?: "Unknown"}",
                                 style = MaterialTheme.typography.titleMedium
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = project.description,
+                                text = nonNullProject.description ?: "",
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
@@ -222,7 +179,7 @@ fun ProjectDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Progress: ${(project.progress * 100).toInt()}%",
+                            text = "Progress: ${(nonNullProject.progress * 100).toInt()}%",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -230,14 +187,14 @@ fun ProjectDetailScreen(
                         Spacer(modifier = Modifier.width(16.dp))
 
                         LinearProgressIndicator(
-                            strokeCap = { project.progress },
+                            progress = { nonNullProject.progress },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
                             color = when {
-                                project.progress < 0.3f -> WarningYellow
-                                project.progress < 0.7f -> Blue500
+                                nonNullProject.progress < 0.3f -> WarningYellow
+                                nonNullProject.progress < 0.7f -> Blue500
                                 else -> SuccessGreen
                             },
                             trackColor = Gray200
@@ -257,9 +214,10 @@ fun ProjectDetailScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val todoTasks = project.tasks.filter { it.status == TaskStatus.TODO }
-                val inProgressTasks = project.tasks.filter { it.status == TaskStatus.IN_PROGRESS }
-                val completedTasks = project.tasks.filter { it.status == TaskStatus.COMPLETED }
+                val tasks = nonNullProject.tasks ?: emptyList()
+                val todoTasks = tasks.filter { it.status == TaskStatus.TODO }
+                val inProgressTasks = tasks.filter { it.status == TaskStatus.IN_PROGRESS }
+                val completedTasks = tasks.filter { it.status == TaskStatus.COMPLETED }
 
                 item {
                     KanbanColumn(
@@ -302,17 +260,18 @@ fun ProjectDetailScreen(
                 }
             }
 
+            // Contenido de las pestañas (sin scroll interno)
             when (selectedTabIndex) {
-                0 -> TasksTab(project.tasks)
-                1 -> DocumentsTab(
-                    documents = project.documents,
+                0 -> TasksTabContent(nonNullProject.tasks ?: emptyList())
+                1 -> DocumentsTabContent(
+                    documents = nonNullProject.documents ?: emptyList(),
                     onDocumentClick = { document ->
-                        navController.navigate(Screen.PlanDetail.createRoute(document.id))
+                        //navController.navigate(Screen.PlanDetail.createRoute(document.id))
                     }
                 )
-                2 -> BudgetTab(
-                    projectId = projectId,
-                    navController = navController
+
+                2 -> BudgetTabContent(
+                    projectId = projectId, navController = navController
                 )
             }
         }
@@ -320,11 +279,83 @@ fun ProjectDetailScreen(
 }
 
 @Composable
+fun TasksTabContent(tasks: List<Task>) {
+    Column {
+        // Mostrar cada tarea en la lista
+        tasks.forEach { task ->
+            TaskListItem(task = task)
+        }
+
+        // Si no hay tareas, mostrar un mensaje
+        if (tasks.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No tasks available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DocumentsTabContent(
+    documents: List<Document>,
+    onDocumentClick: (Document) -> Unit
+) {
+    Column {
+        // Mostrar cada documento en la lista
+        documents.forEach { document ->
+            DocumentListItem(document = document, onClick = { onDocumentClick(document) })
+        }
+
+        // Si no hay documentos, mostrar un mensaje
+        if (documents.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No documents available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BudgetTabContent(
+    projectId: String, navController: NavController
+) {
+    Column {
+        Text(
+            text = "No budget created yet", style = MaterialTheme.typography.titleMedium
+        )
+        FloatingActionButton(
+            onClick = {
+                //navController.navigate(Screen.BudgetCreation.createRoute(projectId))
+            },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Create Budget")
+        }
+    }
+}
+
+@Composable
 fun KanbanColumn(
-    title: String,
-    tasks: List<Task>,
-    color: Color,
-    onTaskClick: (Task) -> Unit
+    title: String, tasks: List<Task>, color: Color, onTaskClick: (Task) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -365,16 +396,13 @@ fun KanbanColumn(
                 )
             }
 
-            Divider(color = Gray300)
+            HorizontalDivider(color = Gray300)
 
             LazyColumn(
                 modifier = Modifier.height(300.dp)
             ) {
                 items(tasks.size) { task ->
-                    TaskCard(
-                        task = tasks[task],
-                        onClick = { onTaskClick(tasks[task]) }
-                    )
+                    TaskCard(task = tasks[task], onClick = { onTaskClick(tasks[task]) })
                 }
             }
         }
@@ -383,8 +411,7 @@ fun KanbanColumn(
 
 @Composable
 fun TaskCard(
-    task: Task,
-    onClick: () -> Unit
+    task: Task, onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -428,10 +455,8 @@ fun TaskCard(
 
 @Composable
 fun TasksTab(tasks: List<Task>) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        items(tasks) { task ->
+    Column {
+        tasks.forEach { task ->
             TaskListItem(task = task)
         }
     }
@@ -446,8 +471,7 @@ fun TaskListItem(task: Task) {
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
@@ -468,8 +492,7 @@ fun TaskListItem(task: Task) {
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.titleMedium
+                    text = task.title, style = MaterialTheme.typography.titleMedium
                 )
 
                 if (task.description.isNotEmpty()) {
@@ -487,18 +510,17 @@ fun TaskListItem(task: Task) {
 
             IconButton(onClick = { /* Edit task */ }) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Task"
+                    imageVector = Icons.Default.Edit, contentDescription = "Edit Task"
                 )
             }
         }
     }
 }
 
+// Document Tab Content
 @Composable
 fun DocumentsTab(
-    documents: List<Document>,
-    onDocumentClick: (Document) -> Unit
+    documents: List<Document>, onDocumentClick: (Document) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -517,20 +539,14 @@ fun DocumentsTab(
 
             IconButton(onClick = { /* Upload document */ }) {
                 Icon(
-                    imageVector = Icons.Default.Upload,
-                    contentDescription = "Upload Document"
+                    imageVector = Drive_folder_upload, contentDescription = "Upload Document"
                 )
             }
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) {
-            items(documents) { document ->
-                DocumentListItem(
-                    document = document,
-                    onClick = { onDocumentClick(document) }
-                )
+        Column {
+            documents.forEach { document ->
+                DocumentListItem(document = document, onClick = { onDocumentClick(document) })
             }
         }
     }
@@ -538,8 +554,7 @@ fun DocumentsTab(
 
 @Composable
 fun DocumentListItem(
-    document: Document,
-    onClick: () -> Unit
+    document: Document, onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -549,8 +564,7 @@ fun DocumentListItem(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
@@ -560,7 +574,7 @@ fun DocumentListItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Description,
+                    imageVector = Description,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -572,8 +586,7 @@ fun DocumentListItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = document.name,
-                    style = MaterialTheme.typography.titleMedium
+                    text = document.name, style = MaterialTheme.typography.titleMedium
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -587,8 +600,7 @@ fun DocumentListItem(
 
             IconButton(onClick = { /* Share document */ }) {
                 Icon(
-                    imageVector = Icons.Default.AttachFile,
-                    contentDescription = "Share Document"
+                    imageVector = Attach_file, contentDescription = "Share Document"
                 )
             }
         }
@@ -597,26 +609,18 @@ fun DocumentListItem(
 
 @Composable
 fun BudgetTab(
-    projectId: String,
-    navController: NavController
+    projectId: String, navController: NavController
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    Column {
         Text(
-            text = "No budget created yet",
-            style = MaterialTheme.typography.titleMedium
+            text = "No budget created yet", style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         FloatingActionButton(
             onClick = {
-                navController.navigate(Screen.BudgetCreation.createRoute(projectId))
+                //navController.navigate(Screen.BudgetCreation.createRoute(projectId))
             },
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -624,4 +628,40 @@ fun BudgetTab(
             Icon(Icons.Default.Add, contentDescription = "Create Budget")
         }
     }
+}
+
+@Preview
+@Composable
+fun TaskListItemsPreview() {
+    TaskListItem(
+        task = Task(
+            title = "Task 1",
+            description = "This is a task description",
+            status = TaskStatus.TODO
+        )
+    )
+}
+
+@Preview
+@Composable
+fun TasksTabPreview() {
+    TasksTab(
+        tasks = listOf(
+            Task(
+                title = "Task 1",
+                description = "This is a task description",
+                status = TaskStatus.TODO
+            ),
+            Task(
+                title = "Task 2",
+                description = "This is a task description",
+                status = TaskStatus.IN_PROGRESS
+            ),
+            Task(
+                title = "Task 3",
+                description = "This is a task description",
+                status = TaskStatus.COMPLETED
+            )
+        )
+    )
 }

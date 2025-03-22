@@ -214,7 +214,7 @@ fun ProjectCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             LinearProgressIndicator(
-                strokeCap = StrokeCap.Round,
+                progress = { project.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
